@@ -1,0 +1,10 @@
+{
+  "name": "knurl",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun scripts/dev.ts",
+    "seed": "bun scripts/dev.ts seed",
+    "status": "bun scripts/dev.ts status"
+  }
+}

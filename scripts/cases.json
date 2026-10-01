@@ -1,0 +1,12 @@
+{
+  "featureType": "knurl",
+  "cases": [
+    {
+      "name": "Knurl cylinder",
+      "params": {
+        "faces": "qGeometry(qCreatedBy($seed + \"cylinder\", EntityType.FACE), GeometryType.CYLINDER)",
+        "depth": "0.3 mm"
+      }
+    }
+  ]
+}
