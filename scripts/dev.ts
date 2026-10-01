@@ -124,7 +124,9 @@ async function evalFS(script: string, rollbackBarIndex = -1): Promise<any> {
 }
 
 async function seedId(features: any[]): Promise<string | undefined> {
-  return features.find((f: any) => f.featureType === SEED_FEATURE_TYPE)?.featureId;
+  const seeds = features.filter((f: any) => f.featureType === SEED_FEATURE_TYPE);
+  if (seeds.length > 1) console.log(`! ${seeds.length} seed features found; using "${SEED_FEATURE_NAME}". Delete the extras in Onshape.`);
+  return (seeds.find((f: any) => f.name === SEED_FEATURE_NAME) ?? seeds[0])?.featureId;
 }
 
 function expandQuery(expr: string, seed: string | undefined): string {
