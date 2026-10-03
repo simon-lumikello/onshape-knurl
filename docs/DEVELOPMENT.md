@@ -85,13 +85,22 @@ failure.
 - **Status.** Feature states come from the features endpoint; the error, warning and info texts from
   `getFeatureError/Warning/Info` through eval.
 
-## API quota
+## API limits
 
-The free plan has a daily API allowance. When it is used up, Onshape answers HTTP 429 with a
-`Retry-After` of many hours; the tooling stops and prints when it resets. Short rate limits are retried
-automatically. Typical costs: `bun run dev` about 5 calls plus 1 per case and 1 per query parameter;
-`check`, `debug`, `eval`, `faces` and each probe run 1 to 3 calls. Use the manual workflow while the
-quota is exhausted.
+Onshape has two limits ([API Limits](https://onshape-public.github.io/docs/auth/limits/)):
+
+- **Annual call limit**: 2,500 calls per user per year on the Free plan (5,000 Professional,
+  10,000 Enterprise). The current count is under **My account → Developer → Overview**. When it is
+  reached, requests fail with HTTP 402 and the tooling says so. This is the budget that matters: plan
+  test runs instead of re-running everything after every small change.
+- **Rate limit per endpoint**: too many calls to one endpoint within its time window give HTTP 429 with
+  `Retry-After` (seconds until that endpoint resets). The FeatureScript eval endpoint, used by `check`,
+  `debug`, `eval`, `faces`, the probes, query resolution and the status texts, has a window of about a
+  day. Short waits are retried; long ones are reported, and other endpoints keep working.
+
+Typical costs: `bun run dev` about 5 calls plus 1 per case and 1 per query parameter (most of them eval
+calls); `check`, `debug`, `eval`, `faces` and each probe run 1 to 3 calls. When eval is rate-limited,
+pushes and feature updates still work, and feature states (OK / INFO / ERROR) can still be read.
 
 ## Manual workflow (no API)
 

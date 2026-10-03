@@ -17,20 +17,26 @@ type Query = Record<string, string | number | boolean>;
 
 /**
  * Calls the API and parses the JSON response.
- * Short rate limits (HTTP 429) are waited out and retried; a long Retry-After means the account's
- * API quota is used up, which is reported instead of waited for.
+ * Onshape rate-limits each endpoint per time window (HTTP 429, Retry-After = seconds until that
+ * endpoint's counter resets); short waits are retried, long ones are reported. The separate annual
+ * call limit (2,500 per year on the Free plan) is reported as HTTP 402.
+ * See https://onshape-public.github.io/docs/auth/limits/
  */
 export async function api<T = any>(method: string, path: string, body?: unknown, query?: Query): Promise<T> {
   for (let attempt = 0; ; attempt++) {
     try {
       return await request<T>(method, path, body, query);
     } catch (error) {
+      if (error instanceof ApiError && error.status === 402) {
+        throw new ApiError(402, error.body, "The account's annual Onshape API call limit is used up (HTTP 402). " +
+          "Use the manual workflow (docs/DEVELOPMENT.md).");
+      }
       if (!(error instanceof ApiError) || error.status !== 429 || attempt >= apiPolicy.rateLimitRetries) throw error;
       const waitSeconds = error.retryAfter ?? 2 ** (attempt + 1);
       if (waitSeconds > apiPolicy.maxRateLimitWaitSeconds) {
         const resetsAt = new Date(Date.now() + waitSeconds * 1000).toLocaleString();
-        throw new ApiError(429, error.body,
-          `Onshape API quota exhausted; it resets around ${resetsAt}. Use the manual workflow until then (docs/DEVELOPMENT.md).`);
+        throw new ApiError(429, error.body, `Rate limit reached for ${method} ${path.split("/")[1]}…${path.split("/").at(-1)}; ` +
+          `this endpoint resets around ${resetsAt}. Other endpoints keep working.`);
       }
       console.error(`  (rate limited, waiting ${waitSeconds}s)`);
       await Bun.sleep(waitSeconds * 1000);

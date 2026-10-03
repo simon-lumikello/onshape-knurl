@@ -35,7 +35,7 @@ export const apiPolicy = {
   conflictRetries: 3,
   /** Retries after a short HTTP 429 (burst rate limit). */
   rateLimitRetries: 6,
-  /** A Retry-After longer than this means the account quota is used up: stop instead of waiting. */
+  /** A Retry-After longer than this is reported instead of waited for (the endpoint's window is long). */
   maxRateLimitWaitSeconds: 120,
 };
 
