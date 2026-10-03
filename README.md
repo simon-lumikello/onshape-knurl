@@ -59,10 +59,16 @@ bun scripts/dev.ts suppress Knurl                   # suppress / unsuppress feat
 bun scripts/dev.ts unsuppress "Knurl shaft"
 bun scripts/dev.ts --cases .devstate/exp.json       # scratch case file instead of scripts/cases.json
 bun scripts/probe-knurl.ts "0,0,0" "0,0,1" 10 0.5 10 30   # groove count / hand check (see file header)
+bun scripts/probe-band.ts "-60,0" 15 15 6 0.2 12      # band: crossings and air on flats vs fillets
 ```
 
 `bun run dev` exits 0 when all cases regenerate, 2 when a case has ERROR status, and 1 on
 compile or API failure.
+
+**API quota:** the free plan has a daily API call allowance. When it is used up, Onshape answers
+HTTP 429 with a `Retry-After` of many hours, and the scripts stop with the time it resets. Short 429
+waits are retried automatically. Each `bun run dev` costs about 5 calls plus 1 per case and 1 per query
+parameter; the probe scripts cost 1 call per sampled ring. Use the manual workflow until the quota resets.
 
 How it works:
 - **Push**: `POST /featurestudios/.../e/{eid}` with the `sourceMicroversion` from a fresh GET

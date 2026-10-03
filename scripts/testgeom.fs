@@ -77,6 +77,25 @@ export const knurlTestGeometry = defineFeature(function(context is Context, id i
                     "topCenter" : vector(120, 60, 35) * millimeter,
                     "radius" : 10 * millimeter
                 });
+        // Rounded box: 30 x 30 x 24, R6 vertical edges, then R3 on the top and bottom edge loops.
+        // Side faces + vertical fillets form a closed prismatic band (Phase 4 test).
+        fCuboid(context, id + "roundBox", {
+                    "corner1" : vector(-75, -15, 0) * millimeter,
+                    "corner2" : vector(-45, 15, 24) * millimeter
+                });
+        opFillet(context, id + "roundBoxVertical", {
+                    "entities" : qParallelEdges(qCreatedBy(id + "roundBox", EntityType.EDGE), vector(0, 0, 1)),
+                    "radius" : 6 * millimeter
+                });
+        const roundBoxFaces = qOwnedByBody(qCreatedBy(id + "roundBox", EntityType.BODY), EntityType.FACE);
+        opFillet(context, id + "roundBoxCaps", {
+                    "entities" : qUnion([
+                                qAdjacent(qContainsPoint(roundBoxFaces, vector(-60, 0, 24) * millimeter), AdjacencyType.EDGE, EntityType.EDGE),
+                                qAdjacent(qContainsPoint(roundBoxFaces, vector(-60, 0, 0) * millimeter), AdjacencyType.EDGE, EntityType.EDGE)
+                            ]),
+                    "radius" : 3 * millimeter
+                });
+
         opBoolean(context, id + "shaftUnion", {
                     "tools" : qUnion([qCreatedBy(id + "shaft", EntityType.BODY), qCreatedBy(id + "collar", EntityType.BODY)]),
                     "operationType" : BooleanOperationType.UNION

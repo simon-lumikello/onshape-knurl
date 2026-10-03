@@ -112,6 +112,19 @@
         "depth": "0.5 mm",
         "width": "1 mm"
       }
+    },
+    {
+      "name": "Knurl band diamond",
+      "params": {
+        "faces": "qUnion([qGeometry(qCreatedBy($seed + \"roundBoxVertical\", EntityType.FACE), GeometryType.CYLINDER), qContainsPoint(qGeometry(qCreatedBy($seed + \"roundBox\", EntityType.FACE), GeometryType.PLANE), vector(-75, 0, 12) * millimeter), qContainsPoint(qGeometry(qCreatedBy($seed + \"roundBox\", EntityType.FACE), GeometryType.PLANE), vector(-45, 0, 12) * millimeter), qContainsPoint(qGeometry(qCreatedBy($seed + \"roundBox\", EntityType.FACE), GeometryType.PLANE), vector(-60, -15, 12) * millimeter), qContainsPoint(qGeometry(qCreatedBy($seed + \"roundBox\", EntityType.FACE), GeometryType.PLANE), vector(-60, 15, 12) * millimeter)])",
+        "directions": "DOUBLE",
+        "angle": "30 deg",
+        "spacing": "PITCH",
+        "pitch": "1.5 mm",
+        "profile": "V",
+        "depth": "0.4 mm",
+        "tipAngle": "90 deg"
+      }
     }
   ]
 }

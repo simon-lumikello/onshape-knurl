@@ -29,10 +29,30 @@ function sign(method: string, url: URL, contentType: string, date: string, nonce
 }
 
 export class ApiError extends Error {
+  retryAfter?: number;
   constructor(public status: number, public body: string, msg: string) { super(msg); }
 }
 
 export async function api<T = any>(method: string, path: string, body?: unknown, query?: Record<string, string | number | boolean>): Promise<T> {
+  // Rate limit (429): wait (Retry-After, else exponential backoff) and retry.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await apiOnce<T>(method, path, body, query);
+    } catch (e) {
+      if (!(e instanceof ApiError) || e.status !== 429 || attempt >= 6) throw e;
+      const wait = e.retryAfter ?? 2 ** (attempt + 1);
+      if (wait > 120) {
+        // A long Retry-After means the account's API quota is used up, not a short burst limit.
+        const until = new Date(Date.now() + wait * 1000).toLocaleString();
+        throw new ApiError(429, e.body, `Onshape API quota exhausted; retry after ${until} (${Math.round(wait / 3600)} h). Use the manual workflow meanwhile.`);
+      }
+      console.error(`  (rate limited, waiting ${wait}s)`);
+      await Bun.sleep(wait * 1000);
+    }
+  }
+}
+
+async function apiOnce<T>(method: string, path: string, body?: unknown, query?: Record<string, string | number | boolean>): Promise<T> {
   const url = new URL(cfg.base + cfg.apiPath + path);
   for (const [k, v] of Object.entries(query ?? {})) url.searchParams.set(k, String(v));
   const contentType = "application/json";
@@ -53,7 +73,10 @@ export async function api<T = any>(method: string, path: string, body?: unknown,
   const text = await res.text();
   if (!res.ok) {
     // Never echo request headers (they contain the access key).
-    throw new ApiError(res.status, text, `${method} ${url.pathname} -> HTTP ${res.status}: ${text.slice(0, 500)}`);
+    const err = new ApiError(res.status, text, `${method} ${url.pathname} -> HTTP ${res.status}: ${text.slice(0, 500)}`);
+    const retryAfter = Number(res.headers.get("retry-after"));
+    if (retryAfter > 0) err.retryAfter = retryAfter;
+    throw err;
   }
   return (text ? JSON.parse(text) : undefined) as T;
 }

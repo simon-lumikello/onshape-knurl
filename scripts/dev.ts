@@ -291,8 +291,12 @@ async function cmdRun() {
   const seed = await seedId(feats.features);
   const fids: string[] = [];
   for (const c of cases) {
-    fids.push(await upsertFeature(spec, c, feats.features, seed));
-    feats = await getFeatures();
+    const fid = await upsertFeature(spec, c, feats.features, seed);
+    fids.push(fid);
+    // Keep the local feature list current instead of re-fetching it (saves API quota).
+    if (!feats.features.some((f: any) => f.featureId === fid)) {
+      feats.features.push({ featureId: fid, name: c.name, featureType: spec.featureType });
+    }
   }
   const ok = await report(fids);
   process.exit(ok ? 0 : 2);
@@ -332,7 +336,8 @@ async function cmdDebug(name: string) {
   // Fill parameters the case does not set with the spec defaults (hidden ones are read in some branches).
   for (const ps of spec.parameters) {
     if (pid_in(c.params, ps.parameterId)) continue;
-    if (ps.btType.startsWith("BTParameterSpecBoolean")) entries.push(`"${ps.parameterId}" : ${Boolean(ps.defaultValue?.value)}`);
+    if (ps.btType.startsWith("BTParameterSpecQuery")) entries.push(`"${ps.parameterId}" : qNothing()`);
+    else if (ps.btType.startsWith("BTParameterSpecBoolean")) entries.push(`"${ps.parameterId}" : ${Boolean(ps.defaultValue?.value)}`);
     else if (ps.btType.startsWith("BTParameterSpecEnum")) entries.push(`"${ps.parameterId}" : ${JSON.stringify(ps.defaultValue?.value ?? ps.options?.[0])}`);
     else if (ps.btType.startsWith("BTParameterSpecQuantity") && ps.ranges?.[0]?.defaultValue != null) {
       const r = ps.ranges[0];
