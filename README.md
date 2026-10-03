@@ -106,8 +106,9 @@ All dialog values accept expressions and variables as usual.
 ## Versions and support
 
 Version history: [CHANGELOG.md](CHANGELOG.md). Knurl is built on FeatureScript std 3083.0.
-Bug reports and ideas are welcome; include the error message and, if possible, a link to a public
-document that shows the problem.
+Bug reports and ideas are welcome in [GitHub Issues](https://github.com/simon-lumikello/onshape-knurl/issues);
+include the error message and, if possible, a link to a public document that shows the problem.
+Pull requests are welcome too; see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Development
 
