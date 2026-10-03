@@ -69,6 +69,18 @@ knurls about ten times slower. Separately swept band grooves that overlap their 
 boolean fail (`BOOLEAN_INVALID`), so they are cut in alternating batches (0, 2, 4… then 1, 3, 5…); grooves
 left over when the count does not divide evenly get their own batches.
 
+## Compatibility rules (from 1.0.0 on)
+
+Users' models keep references to knurled geometry (a chamfer on a knurled edge, a mate on a knurled
+face). Onshape names the faces and edges a feature creates or splits after the feature's internal
+operation ids, so these are part of the public contract:
+
+- Keep the operation ids in `buildTools`, `cutTools` and the builders stable: `piece<i>set<k>` with the
+  `sketch`, `path`, `sweep`, `extrude`, `slab`, `trim`, `groove<k>` sub-ids, `cut<n>` and `cleanup`.
+  Renaming them breaks downstream references on update.
+- Keep parameter ids and enum values. Add new parameters with defaults that reproduce the old result.
+- The order of pieces, sets and batches determines the ids, so keep that order stable too.
+
 ## Std library behaviour the feature relies on
 
 - `opSweep` applies a twist only when `hasTwist` is set, as the std Sweep feature does; a bare `angle`

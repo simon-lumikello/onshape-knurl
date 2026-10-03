@@ -107,7 +107,7 @@
         "angle": "0 deg",
         "spacing": "COUNT",
         "count": "10",
-        "referenceDirection": "qContainsPoint(qCreatedBy($seed + \"plate\", EntityType.EDGE), vector(90, 0, 5) * millimeter)",
+        "referenceDirection": "qContainsPoint(qGeometry(qCreatedBy($seed, EntityType.EDGE), GeometryType.LINE), vector(45, 0, 30) * millimeter)",
         "profile": "SQUARE",
         "depth": "0.5 mm",
         "width": "1 mm"
