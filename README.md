@@ -1,100 +1,119 @@
-# Knurl
+# Knurl for Onshape
 
-Onshape FeatureScript custom feature that cuts knurl patterns into faces.
+**Straight, diagonal and diamond knurling as a native-feeling Onshape feature.** Select a face, pick a
+profile and a pitch, and Knurl cuts real grooves into your part: on cylinders, cones, flat faces and
+rounded boxes, outside or inside.
 
-- `knurl.fs`: the feature (single file; can also be pasted by hand)
-- `scripts/testgeom.fs`: seed feature that builds the test bodies
-- `scripts/cases.json`: Knurl feature instances the dev loop creates or updates
-- `scripts/dev.ts`, `scripts/onshape.ts`: REST API dev loop (Bun, no dependencies)
+Free and open source (MIT). Written in FeatureScript, no add-ins or accounts needed.
 
-## Setup
+| Knurl type | Example |
+|---|---|
+| Straight | grip ring on a shaft, axial serrations |
+| Diagonal (helical) | right- or left-hand knurl on a handle |
+| Diamond (crossed) | thumb screws, knobs, tool handles |
 
-### What exists in Onshape
+## Install
 
-Document **Knurl dev** (free plan, so it is public; keep it free of sensitive content):
+1. Open the public document **[Knurl – knurling custom feature for Onshape](#)** *(link added on publication)*.
+2. In your own Part Studio, open **Add custom features** from the custom features button at the right
+   end of the toolbar, find the **Knurl** document (search for "Knurl"), and add **Knurl** from its
+   latest version.
+3. **Knurl** now appears in your toolbar. Updates arrive when you switch the toolbar entry to a newer
+   version.
 
-| Element | Type | Purpose |
+Alternative: create a Feature Studio in your own document, paste [`knurl.fs`](knurl.fs) into it, and add
+the feature to your toolbar from that document.
+
+## Quick start
+
+1. Click **Knurl** and select the outside face of a cylinder.
+2. Choose **Directions: Double (diamond)**, **Angle 30 deg**, **Spacing: Pitch 1 mm**, **Profile: V**,
+   **Depth 0.4 mm**.
+3. Click the green check. The info message shows the groove count, the actual pitch and the face count.
+
+## What it can knurl
+
+| Selection | How the grooves follow it |
+|---|---|
+| Cylinder (outside or bore) | exact helices around the axis; any orientation |
+| Cone (outside or countersink) | grooves follow the taper; size and pitch are set at the mid radius and scale along the cone |
+| Planar face | straight grooves at an angle to a reference direction, stopping at the face boundary (holes included) |
+| Band: several connected faces around a part, e.g. the 4 sides and 4 vertical fillets of a rounded box | laid out on the unrolled band, so pitch and angle stay exact across the fillets |
+
+Select several faces that are not connected and each is knurled on its own. Faces that touch each other
+are knurled together as one band.
+
+## Parameters
+
+**Pattern**
+
+| Parameter | Default | Meaning |
 |---|---|---|
-| Part Studio 1 | Part Studio | test model: seed feature first, then the Knurl test cases |
-| Knurl | Feature Studio | receives `knurl.fs` |
-| Test geometry | Feature Studio | receives `scripts/testgeom.fs` (created by `bun run seed`) |
+| Faces to knurl | | Cylinders, cones and planar faces. Connected faces form one band. |
+| Directions | Single | Single: one set of parallel grooves. Double (diamond): two crossing sets. |
+| Angle (0 = straight) | 30 deg | Angle between the grooves and the axis (cylinders, cones), the band direction (bands) or the reference direction (planar faces). 0 to 75 deg. |
+| Hand | Right hand | Single only. Right hand turns like a right-hand thread. No effect at angle 0. |
+| Independent second angle | off | Double only. Off: the second set mirrors the first. |
+| Second angle | 30 deg | Double only. Angle of the left-hand set. |
+| Spacing | Groove count | Groove count or pitch. |
+| Groove count | 40 | Grooves per set: around a cylinder, cone or band; across a planar face. |
+| Pitch (normal to grooves) | 1 mm | Distance between neighbouring grooves, perpendicular to them. Rounded to a whole number of grooves around closed faces; on cones it applies at the mid radius. |
+| Reference direction (planar faces) | longest straight edge | Edge, axis or plane that the angle on planar faces is measured from. |
 
-Seed bodies (mm): cylinder Ø20×40 (axis Z), rounded cube 30³ with R5 fillets, plate 60×40×5,
-cone frustum Ø30→Ø15 h30, tilted cylinder Ø20×40 (axis off the world axes).
+**Cutter**
 
-FeatureScript std library: `3083.0`. This was taken from the default template of a new Feature
-Studio and matches the Part Studio's own `geometry.fs` import and `libraryVersion`.
+| Parameter | Default | Meaning |
+|---|---|---|
+| Profile | V (triangle) | V, Round or Square groove cross-section. |
+| Depth | 0.4 mm | Groove depth, perpendicular to the surface. |
+| Included tip angle | 90 deg | V only. Angle between the two flanks. |
+| Cutter radius | 0.5 mm | Round only. Depth must be less than the cutter diameter. |
+| Groove width | 0.5 mm | Square only. |
 
-### Reading IDs from an Onshape URL
+**Limits** (collapsed)
 
-```
-https://cad.onshape.com/documents/<did>/w/<wid>/e/<eid>
-```
-`did` = document, `wid` = workspace, `eid` = the open tab (element).
-The Part Studio's `eid` was looked up with `GET /documents/d/{did}/w/{wid}/elements`.
+| Parameter | Default | Meaning |
+|---|---|---|
+| Margin from face ends | 0 mm | Keeps grooves this far from the ends of cylinders, cones and bands. At 0, grooves run out cleanly past open flat ends and stop at shoulders, chamfers and fillets. |
+| Maximum groove count | 500 | Safety limit for the total number of grooves. |
 
-### API key and .env
+All dialog values accept expressions and variables as usual.
 
-1. Onshape → user icon → **My account** → **Developer** → **Create new API key**.
-2. Scopes: only **read** (`OAuth2Read`) and **write** (`OAuth2Write`) documents.
-3. Copy `.env.example` to `.env` and fill in the keys and IDs. `.env` is gitignored.
-   The scripts never print the keys.
+## Tips and limits
 
-Auth uses HMAC request signing (`Authorization: On <key>:HmacSHA256:<sig>`), API base `/api/v17`.
+- **Diamond knurls are heavy.** Every crossing creates faces; a 30 mm knurl at 1 mm pitch can produce
+  thousands. The feature warns above 20,000 faces. Use a coarser pitch while modelling, or suppress
+  the knurl while you work on other features.
+- **Pitch, angle and diameter interact.** Around closed faces the groove count is rounded to a whole
+  number, so the actual pitch is slightly different from the one you enter. The info message shows it.
+- **Cones:** the helix angle is exact at the mid radius and changes slowly toward the ends.
+- **Bands** must be a closed loop of flat faces and fillets that all run in the same direction.
+  Top fillets and corner blends cannot be part of a band; knurl them separately or leave them out.
+- **Not supported:** partial cylinders or cones (faces that do not go all the way around), open strips
+  of faces, and freeform surfaces. The feature highlights the faces it cannot handle and says why.
 
-## Dev loop
+## Troubleshooting
 
-Run from the project root (Bun reads `.env` from there):
+| Message | What to do |
+|---|---|
+| This knurl needs N grooves, more than the maximum | Increase the pitch or lower the count, or raise **Maximum groove count**. |
+| Knurl depth must be less than half the radius | Use a smaller depth on small diameters. |
+| Partial cylindrical or conical faces are not supported | Select a face that goes all the way around. |
+| The selected faces do not form a closed band | Select every face around the part, or knurl faces separately. |
+| The highlighted concave fillet is too tight for this groove size | Use a smaller depth or groove, or a larger fillet. |
+| Cutting the knurl failed (code) | Try a slightly different depth, pitch or angle. Please report it with the code. |
 
-```bash
-bun run seed      # once: create/push Test geometry, add the seed feature
-bun run dev       # push knurl.fs, check it compiles, upsert cases.json, print status + messages
-bun run status    # status only
-bun scripts/dev.ts --case cylinder                  # only cases whose name contains "cylinder"
-bun scripts/dev.ts faces 'qCreatedBy($seed + "cone", EntityType.FACE)'
-bun scripts/dev.ts eval 'function(context is Context, queries) { return 1; }'
-bun scripts/fscheck.ts knurl.fs                     # compile errors with line numbers (no push needed)
-bun scripts/dev.ts debug "tube"                     # run one case inside eval, with stack traces
-bun scripts/dev.ts suppress Knurl                   # suppress / unsuppress features by name substring
-bun scripts/dev.ts unsuppress "Knurl shaft"
-bun scripts/dev.ts --cases .devstate/exp.json       # scratch case file instead of scripts/cases.json
-bun scripts/probe-knurl.ts "0,0,0" "0,0,1" 10 0.5 10 30   # groove count / hand check (see file header)
-bun scripts/probe-band.ts "-60,0" 15 15 6 0.2 12      # band: crossings and air on flats vs fillets
-```
+## Versions and support
 
-`bun run dev` exits 0 when all cases regenerate, 2 when a case has ERROR status, and 1 on
-compile or API failure.
+Version history: [CHANGELOG.md](CHANGELOG.md). Knurl is built on FeatureScript std 3083.0.
+Bug reports and ideas are welcome; include the error message and, if possible, a link to a public
+document that shows the problem.
 
-**API quota:** the free plan has a daily API call allowance. When it is used up, Onshape answers
-HTTP 429 with a `Retry-After` of many hours, and the scripts stop with the time it resets. Short 429
-waits are retried automatically. Each `bun run dev` costs about 5 calls plus 1 per case and 1 per query
-parameter; the probe scripts cost 1 call per sampled ring. Use the manual workflow until the quota resets.
+## Development
 
-How it works:
-- **Push**: `POST /featurestudios/.../e/{eid}` with the `sourceMicroversion` from a fresh GET
-  and `rejectMicroversionSkew: true`. If the document moved in between, the API answers 409
-  and the script re-reads and retries.
-- **Edits made in Onshape are not overwritten**: if the Feature Studio changed since our last push,
-  the remote copy is saved to `.devstate/` and the push stops. Merge it, or rerun with `--force`.
-- **Compile check**: `GET .../featurespecs`. An empty list means the studio does not compile.
-  The public API exposes no compile messages, so `scripts/fscheck.ts` rewrites the module into one
-  lambda (same line numbers) and runs it through the eval endpoint, which does report PARSE and
-  SEMANTIC errors. `dev.ts` prints these automatically on a compile failure.
-- **Debug**: `dev.ts debug <case>` runs the feature for one case inside eval, at the rollback position
-  of that case, so exceptions from std operations come back with line-numbered stack traces
-  (a real feature only reports a bare `REGEN_ERROR` for those).
-- **Cases**: each entry in `cases.json` is matched by name and added or updated. Every spec
-  parameter is sent, with spec defaults for the ones a case leaves out: features added through
-  the API do not get defaults filled in, and a missing parameter fails the precondition.
-  Query parameters are FeatureScript query expressions (`$seed` = the seed feature id),
-  resolved to deterministic ids by the eval endpoint, rolled back to just before that feature.
-- **Status**: feature states from `GET .../features`. The error, warning and info text comes from
-  `getFeatureError/Warning/Info` through the eval endpoint.
+How the feature works: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Setting up the API-driven dev loop and regression tests: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
-## Manual fallback (no API)
+## License
 
-1. Open the **Knurl** Feature Studio, select all, paste the contents of `knurl.fs`, and click **Commit**
-   (or press Ctrl+S). Errors appear at the bottom of the editor.
-2. In the Part Studio, open the custom feature from the toolbar (or **Add custom features** the
-   first time), select faces, and set parameters.
-3. Report errors and a screenshot back. Next time `bun run dev` runs, it will notice the edit and back it up.
+[MIT](LICENSE) © 2026 Simon Lumikello

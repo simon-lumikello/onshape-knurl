@@ -1,8 +1,10 @@
 FeatureScript 3083;
 import(path : "onshape/std/common.fs", version : "3083.0");
 
-// Knurl dev: seed test geometry. Pushed to the "Test geometry" Feature Studio by `bun scripts/dev.ts seed`.
-// Every body gets its own sub-id so cases.json can select faces with qCreatedBy($seed + "<name>", ...).
+// Knurl test geometry: the bodies the regression cases in test/cases.json knurl.
+// Pushed to the "Test geometry" Feature Studio of the test document by `bun run seed`.
+// Every body has its own sub-id, so cases select faces with qCreatedBy($seed + "<sub-id>", ...).
+// Changing a sub-id or a dimension changes the baseline in docs/DEVELOPMENT.md.
 
 annotation { "Feature Type Name" : "Knurl test geometry" }
 export const knurlTestGeometry = defineFeature(function(context is Context, id is Id, definition is map)
@@ -77,8 +79,9 @@ export const knurlTestGeometry = defineFeature(function(context is Context, id i
                     "topCenter" : vector(120, 60, 35) * millimeter,
                     "radius" : 10 * millimeter
                 });
+
         // Rounded box: 30 x 30 x 24, R6 vertical edges, then R3 on the top and bottom edge loops.
-        // Side faces + vertical fillets form a closed prismatic band (Phase 4 test).
+        // The side faces and vertical fillets form a closed band.
         fCuboid(context, id + "roundBox", {
                     "corner1" : vector(-75, -15, 0) * millimeter,
                     "corner2" : vector(-45, 15, 24) * millimeter
@@ -96,6 +99,7 @@ export const knurlTestGeometry = defineFeature(function(context is Context, id i
                     "radius" : 3 * millimeter
                 });
 
+        // Join the stepped shaft and its collar into one body.
         opBoolean(context, id + "shaftUnion", {
                     "tools" : qUnion([qCreatedBy(id + "shaft", EntityType.BODY), qCreatedBy(id + "collar", EntityType.BODY)]),
                     "operationType" : BooleanOperationType.UNION
