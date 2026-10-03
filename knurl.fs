@@ -14,7 +14,11 @@ import(path : "onshape/std/common.fs", version : "3083.0");
 // line on the axis with a twist angle = length * tan(helix angle) / radius. The twist rotates
 // the profiles about the axis, so each groove follows an exact helix and its end caps lie in
 // planes perpendicular to the axis, which trims the grooves at the face ends for free.
-// All tool bodies of a body are subtracted in a single boolean.
+// Each groove set is subtracted with one boolean per body; crossing sets go one after the other
+// (one combined boolean was ~10x slower for diamond knurls).
+//
+// Limits (later phases): full cylinders only; planar, conical and tangent-chain faces are rejected
+// with a highlighted error. Regen cost grows with grooves x crossings; see "Maximum groove count".
 
 // ===================================== 1. UI layer =====================================
 
