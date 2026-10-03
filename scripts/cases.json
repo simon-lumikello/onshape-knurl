@@ -5,7 +5,71 @@
       "name": "Knurl cylinder",
       "params": {
         "faces": "qGeometry(qCreatedBy($seed + \"cylinder\", EntityType.FACE), GeometryType.CYLINDER)",
-        "depth": "0.3 mm"
+        "directions": "SINGLE",
+        "angle": "0 deg",
+        "hand": "RIGHT",
+        "spacing": "COUNT",
+        "count": "30",
+        "profile": "V",
+        "depth": "0.5 mm",
+        "tipAngle": "90 deg"
+      }
+    },
+    {
+      "name": "Knurl tilted helical",
+      "params": {
+        "faces": "qGeometry(qCreatedBy($seed + \"tiltedCylinder\", EntityType.FACE), GeometryType.CYLINDER)",
+        "directions": "SINGLE",
+        "angle": "30 deg",
+        "hand": "RIGHT",
+        "spacing": "PITCH",
+        "pitch": "1.5 mm",
+        "profile": "ROUND",
+        "depth": "0.4 mm",
+        "cutterRadius": "0.5 mm"
+      }
+    },
+    {
+      "name": "Knurl tube bore",
+      "params": {
+        "faces": "qGeometry(qCreatedBy($seed + \"boreCut\", EntityType.FACE), GeometryType.CYLINDER)",
+        "directions": "SINGLE",
+        "angle": "20 deg",
+        "hand": "LEFT",
+        "spacing": "COUNT",
+        "count": "24",
+        "profile": "SQUARE",
+        "depth": "0.5 mm",
+        "width": "0.8 mm"
+      }
+    },
+    {
+      "name": "Knurl shaft diamond",
+      "params": {
+        "faces": "qGeometry(qCreatedBy($seed + \"shaft\", EntityType.FACE), GeometryType.CYLINDER)",
+        "directions": "DOUBLE",
+        "angle": "30 deg",
+        "spacing": "PITCH",
+        "pitch": "1 mm",
+        "profile": "V",
+        "depth": "0.4 mm",
+        "tipAngle": "90 deg"
+      }
+    },
+    {
+      "name": "Knurl collar margin",
+      "params": {
+        "faces": "qGeometry(qCreatedBy($seed + \"collar\", EntityType.FACE), GeometryType.CYLINDER)",
+        "directions": "DOUBLE",
+        "angle": "30 deg",
+        "hasSecondAngle": true,
+        "secondAngle": "45 deg",
+        "spacing": "COUNT",
+        "count": "40",
+        "profile": "SQUARE",
+        "depth": "0.3 mm",
+        "width": "0.6 mm",
+        "margin": "3 mm"
       }
     }
   ]

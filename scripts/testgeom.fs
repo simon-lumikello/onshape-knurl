@@ -48,4 +48,37 @@ export const knurlTestGeometry = defineFeature(function(context is Context, id i
                     "topCenter" : tiltBase + 40 * millimeter * normalize(vector(1, 0.6, 2)),
                     "radius" : 10 * millimeter
                 });
+
+        // Tube: Ø30 outer, Ø16 bore, length 30 (internal knurl test).
+        fCylinder(context, id + "tube", {
+                    "bottomCenter" : vector(60, 60, 0) * millimeter,
+                    "topCenter" : vector(60, 60, 30) * millimeter,
+                    "radius" : 15 * millimeter
+                });
+        fCylinder(context, id + "bore", {
+                    "bottomCenter" : vector(60, 60, -1) * millimeter,
+                    "topCenter" : vector(60, 60, 31) * millimeter,
+                    "radius" : 8 * millimeter
+                });
+        opBoolean(context, id + "boreCut", {
+                    "tools" : qCreatedBy(id + "bore", EntityType.BODY),
+                    "targets" : qCreatedBy(id + "tube", EntityType.BODY),
+                    "operationType" : BooleanOperationType.SUBTRACTION
+                });
+
+        // Stepped shaft: Ø12 x 20 below a Ø20 x 15 collar (shoulder test).
+        fCylinder(context, id + "shaft", {
+                    "bottomCenter" : vector(120, 60, 0) * millimeter,
+                    "topCenter" : vector(120, 60, 20) * millimeter,
+                    "radius" : 6 * millimeter
+                });
+        fCylinder(context, id + "collar", {
+                    "bottomCenter" : vector(120, 60, 20) * millimeter,
+                    "topCenter" : vector(120, 60, 35) * millimeter,
+                    "radius" : 10 * millimeter
+                });
+        opBoolean(context, id + "shaftUnion", {
+                    "tools" : qUnion([qCreatedBy(id + "shaft", EntityType.BODY), qCreatedBy(id + "collar", EntityType.BODY)]),
+                    "operationType" : BooleanOperationType.UNION
+                });
     });

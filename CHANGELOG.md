@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0 (Phases 1+2: cylinders)
+- Knurl on full cylindrical faces, external and internal (bores), any orientation.
+- Profiles: V (depth + included tip angle), round (depth + cutter radius), square (depth + width).
+- Spacing by groove count or by pitch (measured normal to the grooves at the surface).
+- Angle 0 to 75 deg; single direction with hand, or double (diamond) with optional independent second angle.
+- Margin from face ends; grooves run out past open flat ends and stop at shoulders, chamfers and fillets.
+- Maximum groove count (default 500) with a clear error; warning above 20000 faces.
+- Each groove set is one twisted sweep along the axis (exact helices); one boolean per body and set.
+- Clear errors with highlighted faces: non-cylindrical, partial cylinders, depth too large, margin too large.
+- Dev loop: compile errors with line numbers via eval (`scripts/fscheck.ts`), `debug`, `suppress`,
+  `--cases`, full parameter sets for API-created features, 409 retry; `scripts/probe-knurl.ts` checks
+  groove count and hand on the real geometry.
+
 ## 0.0.1 (Phase 0)
 - Project skeleton, REST API dev loop (`scripts/dev.ts`), seed test geometry.
 - `knurl.fs` stub: Knurl feature with face selection and depth; reports the selection, no geometry yet.

@@ -53,6 +53,12 @@ bun run status    # status only
 bun scripts/dev.ts --case cylinder                  # only cases whose name contains "cylinder"
 bun scripts/dev.ts faces 'qCreatedBy($seed + "cone", EntityType.FACE)'
 bun scripts/dev.ts eval 'function(context is Context, queries) { return 1; }'
+bun scripts/fscheck.ts knurl.fs                     # compile errors with line numbers (no push needed)
+bun scripts/dev.ts debug "tube"                     # run one case inside eval, with stack traces
+bun scripts/dev.ts suppress Knurl                   # suppress / unsuppress features by name substring
+bun scripts/dev.ts unsuppress "Knurl shaft"
+bun scripts/dev.ts --cases .devstate/exp.json       # scratch case file instead of scripts/cases.json
+bun scripts/probe-knurl.ts "0,0,0" "0,0,1" 10 0.5 10 30   # groove count / hand check (see file header)
 ```
 
 `bun run dev` exits 0 when all cases regenerate, 2 when a case has ERROR status, and 1 on
@@ -65,8 +71,15 @@ How it works:
 - **Edits made in Onshape are not overwritten**: if the Feature Studio changed since our last push,
   the remote copy is saved to `.devstate/` and the push stops. Merge it, or rerun with `--force`.
 - **Compile check**: `GET .../featurespecs`. An empty list means the studio does not compile.
-  The public API exposes no compile messages, so open the Feature Studio tab to read them.
-- **Cases**: each entry in `cases.json` is matched by name and added or updated.
+  The public API exposes no compile messages, so `scripts/fscheck.ts` rewrites the module into one
+  lambda (same line numbers) and runs it through the eval endpoint, which does report PARSE and
+  SEMANTIC errors. `dev.ts` prints these automatically on a compile failure.
+- **Debug**: `dev.ts debug <case>` runs the feature for one case inside eval, at the rollback position
+  of that case, so exceptions from std operations come back with line-numbered stack traces
+  (a real feature only reports a bare `REGEN_ERROR` for those).
+- **Cases**: each entry in `cases.json` is matched by name and added or updated. Every spec
+  parameter is sent, with spec defaults for the ones a case leaves out: features added through
+  the API do not get defaults filled in, and a missing parameter fails the precondition.
   Query parameters are FeatureScript query expressions (`$seed` = the seed feature id),
   resolved to deterministic ids by the eval endpoint, rolled back to just before that feature.
 - **Status**: feature states from `GET .../features`. The error, warning and info text comes from

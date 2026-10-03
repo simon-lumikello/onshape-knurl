@@ -17,6 +17,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { api, ApiError, cfg, psPath } from "./onshape.ts";
+import { checkModule, fsQuantity, toLambda } from "./fscheck.ts";
 
 const ROOT = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const STATE_DIR = ROOT + ".devstate/";
@@ -27,7 +28,7 @@ const SEED_FEATURE_NAME = "Knurl test geometry";
 const args = Bun.argv.slice(2);
 const flag = (name: string) => args.includes(name);
 const opt = (name: string) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
-const positional = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1] === "--case"));
+const positional = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && ["--case", "--cases"].includes(args[i - 1])));
 const command = positional[0] ?? "run";
 
 // ---------- small utils ----------
@@ -87,13 +88,15 @@ async function pushStudio(eid: string, contents: string, label: string): Promise
 }
 
 /** Returns the feature spec, or exits with a compile failure report. */
-async function compileCheck(eid: string, featureType: string, label: string): Promise<any> {
+async function compileCheck(eid: string, featureType: string, label: string, source: string): Promise<any> {
   const specs = await api("GET", studioPath(eid) + "/featurespecs");
   const spec = specs.featureSpecs?.find((s: any) => s.featureType === featureType);
   if (spec) { console.log(`• ${label}: compiles, feature type "${featureType}" found`); return spec; }
   if (!specs.featureSpecs?.length) {
-    // The public API exposes no compile messages for Feature Studios; the editor tab shows them.
-    fail(`${label} does not compile (no feature specs). Open the Feature Studio tab in Onshape to see the error, or report it back.`);
+    // The public API exposes no compile messages for Feature Studios; fscheck.ts gets them via eval.
+    const diags = await checkModule(source);
+    const lines = diags.map((d) => `  ${d.level} ${d.type} line ${d.line}: ${d.message}${d.text ? `\n      ${d.text}` : ""}`);
+    fail(`${label} does not compile.\n${lines.join("\n") || "  (eval check found nothing; open the Feature Studio tab in Onshape)"}`);
   }
   fail(`${label} compiles, but has no feature type "${featureType}". Found: ${specs.featureSpecs.map((s: any) => s.featureType).join(", ")}`);
 }
@@ -171,7 +174,25 @@ async function buildParams(spec: any, c: Case, seed: string | undefined, rollbac
       fail(`Case "${c.name}": parameter type ${t} for "${pid}" not supported by dev.ts yet`);
     }
   }
+  // Features added via the API do not get defaults for omitted parameters (the precondition then
+  // fails with a bare REGEN_ERROR), so send every spec parameter, using the spec default where the case is silent.
+  for (const ps of spec.parameters) {
+    if (Object.prototype.hasOwnProperty.call(c.params, ps.parameterId)) continue;
+    const d = ps.defaultValue;
+    if (!d) continue;
+    const { nodeId: _n, libraryRelationType: _l, ...rest } = d;
+    if (d.btType?.startsWith("BTMParameterQuantity")) out.push({ btType: d.btType, parameterId: ps.parameterId, expression: defaultExpression(d) });
+    else out.push({ ...rest, parameterId: ps.parameterId });
+  }
   return out;
+}
+
+function defaultExpression(d: any): string {
+  const v = Number(d.value);
+  if (d.units === "meter") return `${+(v * 1000).toPrecision(12)} mm`;
+  if (d.units === "degree") return `${v} deg`;
+  if (d.units === "radian") return `${v} rad`;
+  return d.units ? `${v} ${d.units}` : `${v}`;
 }
 
 /** Add or update a feature (matched by name and type). Returns its featureId. */
@@ -190,9 +211,19 @@ async function upsertFeature(spec: any, c: Case, features: any[], seed: string |
     ...(existing ? { featureId: existing.featureId } : {}),
   };
   const body = { btType: "BTFeatureDefinitionCall-1406", feature };
-  const r = existing
-    ? await api("POST", `${psPath()}/features/featureid/${existing.featureId}`, body)
-    : await api("POST", `${psPath()}/features`, body);
+  let r: any;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      r = existing
+        ? await api("POST", `${psPath()}/features/featureid/${existing.featureId}`, body)
+        : await api("POST", `${psPath()}/features`, body);
+      break;
+    } catch (e) {
+      // 409 "A concurrent update interfered": transient, the document was still settling.
+      if (e instanceof ApiError && e.status === 409 && attempt < 4) { await Bun.sleep(1000 * attempt); continue; }
+      throw e;
+    }
+  }
   console.log(`• ${existing ? "updated" : "added"} "${c.name}"`);
   return r.feature.featureId;
 }
@@ -236,8 +267,9 @@ async function cmdSeed() {
     eid = r.id as string;
     console.log(`• created Feature Studio "${SEED_STUDIO_NAME}"`);
   }
-  await pushStudio(eid, readText("scripts/testgeom.fs"), SEED_STUDIO_NAME);
-  const spec = await compileCheck(eid, SEED_FEATURE_TYPE, SEED_STUDIO_NAME);
+  const seedSource = readText("scripts/testgeom.fs");
+  await pushStudio(eid, seedSource, SEED_STUDIO_NAME);
+  const spec = await compileCheck(eid, SEED_FEATURE_TYPE, SEED_STUDIO_NAME, seedSource);
   const feats = await getFeatures();
   const fid = await upsertFeature(spec, { name: SEED_FEATURE_NAME, params: {} }, feats.features, undefined);
   const after = await getFeatures();
@@ -248,10 +280,11 @@ async function cmdSeed() {
 }
 
 async function cmdRun() {
-  const casesFile = JSON.parse(readText("scripts/cases.json"));
-  await pushStudio(cfg.fsEid, readText("knurl.fs"), "knurl.fs");
+  const casesFile = JSON.parse(readText(opt("--cases") ?? "scripts/cases.json"));
+  const source = readText("knurl.fs");
+  await pushStudio(cfg.fsEid, source, "knurl.fs");
   const featureType: string = casesFile.featureType;
-  const spec = await compileCheck(cfg.fsEid, featureType, "knurl.fs");
+  const spec = await compileCheck(cfg.fsEid, featureType, "knurl.fs", source);
   const filter = opt("--case");
   const cases: Case[] = casesFile.cases.filter((c: Case) => !filter || c.name.includes(filter));
   let feats = await getFeatures();
@@ -266,14 +299,97 @@ async function cmdRun() {
 }
 
 async function cmdStatus() {
-  const casesFile = JSON.parse(readText("scripts/cases.json"));
+  const casesFile = JSON.parse(readText(opt("--cases") ?? "scripts/cases.json"));
   const feats = await getFeatures();
   const names = new Set(casesFile.cases.map((c: Case) => c.name));
   await report(feats.features.filter((f: any) => f.featureType === SEED_FEATURE_TYPE || names.has(f.name)).map((f: any) => f.featureId));
 }
 
+/**
+ * Runs the feature for one case inside the eval endpoint (module rewritten by fscheck.toLambda),
+ * rolled back to just before that case. Errors come back with line numbers and stack traces.
+ */
+async function cmdDebug(name: string) {
+  const casesFile = JSON.parse(readText(opt("--cases") ?? "scripts/cases.json"));
+  const c: Case | undefined = casesFile.cases.find((x: Case) => x.name.includes(name));
+  if (!c) fail(`No case matching "${name}"`);
+  const feats = await getFeatures();
+  const seed = await seedId(feats.features);
+  const idx = feats.features.findIndex((f: any) => f.name === c.name);
+  const specs = await api("GET", studioPath(cfg.fsEid) + "/featurespecs");
+  const spec = specs.featureSpecs?.find((s: any) => s.featureType === casesFile.featureType);
+  if (!spec) fail("Feature Studio does not compile; run bun run dev first");
+  const entries = Object.entries(c.params).map(([pid, val]) => {
+    const ps = spec.parameters.find((p: any) => p.parameterId === pid);
+    const t: string = ps?.btType ?? "";
+    let v: string;
+    if (t.startsWith("BTParameterSpecQuery")) v = expandQuery(String(val), seed);
+    else if (t.startsWith("BTParameterSpecEnum") || t.startsWith("BTParameterSpecString")) v = JSON.stringify(String(val));
+    else if (t.startsWith("BTParameterSpecBoolean")) v = String(Boolean(val));
+    else v = fsQuantity(String(val));
+    return `"${pid}" : ${v}`;
+  });
+  // Fill parameters the case does not set with the spec defaults (hidden ones are read in some branches).
+  for (const ps of spec.parameters) {
+    if (pid_in(c.params, ps.parameterId)) continue;
+    if (ps.btType.startsWith("BTParameterSpecBoolean")) entries.push(`"${ps.parameterId}" : ${Boolean(ps.defaultValue?.value)}`);
+    else if (ps.btType.startsWith("BTParameterSpecEnum")) entries.push(`"${ps.parameterId}" : ${JSON.stringify(ps.defaultValue?.value ?? ps.options?.[0])}`);
+    else if (ps.btType.startsWith("BTParameterSpecQuantity") && ps.ranges?.[0]?.defaultValue != null) {
+      const r = ps.ranges[0];
+      entries.push(`"${ps.parameterId}" : ${r.defaultValue} * ${r.units === "" || !r.units ? "1" : unitName(r.units)}`);
+    }
+  }
+  const tail = `${featureVarName(spec)}(context, makeId("knurlDebug"), { ${entries.join(", ")} });\nreturn "ok";`;
+  // Unwrap defineFeature so exceptions propagate with stack traces instead of becoming a feature status.
+  // Mimics std defineFeature (start, body, error check, end) but lets exceptions surface and prints the feature error.
+  const wrapper = `(function(f) { return function(context is Context, id is Id, definition is map) {
+      startFeature(context, id, definition);
+      f(context, id, definition);
+      println("feature error: " ~ toString(getFeatureError(context, id)) ~ ", info: " ~ toString(getFeatureInfo(context, id)));
+      endFeature(context, id);
+      println("endFeature ok");
+  }; })(`;
+  const script = toLambda(readText("knurl.fs"), tail).replace(/=\s*defineFeature\(/, "= " + wrapper.replace(/\n\s*/g, " "));
+  const r = await api("POST", psPath() + "/featurescript", { btType: "BTFeatureScriptEvalCall-2377", script }, { rollbackBarIndex: idx >= 0 ? idx : -1 });
+  const src = readText("knurl.fs").split("\n");
+  const scriptLines = script.split("\n");
+  for (const n of r.notices ?? []) {
+    if (n.level === "INFO") continue;
+    console.log(`${n.level} ${n.type}: ${n.message}`);
+    for (const s of n.stackTrace ?? []) {
+      if (!s.line) continue;
+      const where = s.line <= src.length ? `knurl.fs:${s.line}  ${src[s.line - 1]?.trim()}` : `debug tail: ${scriptLines[s.line - 1]?.trim().slice(0, 120)}`;
+      console.log(`    at ${where}`);
+    }
+  }
+  if (r.console) console.log("console:\n" + r.console.trimEnd());
+  console.log("result:", JSON.stringify(fsToJs(r.result)));
+}
+const pid_in = (o: Record<string, any>, k: string) => Object.prototype.hasOwnProperty.call(o, k);
+const unitName = (u: string) => ({ METER: "meter", MILLIMETER: "millimeter", INCH: "inch", DEGREE: "degree", RADIAN: "radian", CENTIMETER: "centimeter" } as Record<string, string>)[u.toUpperCase()] ?? u.toLowerCase();
+/** The exported feature const in knurl.fs, e.g. `export const knurl = defineFeature(`. */
+function featureVarName(spec: any): string {
+  const m = readText("knurl.fs").match(/export\s+const\s+(\w+)\s*=\s*defineFeature/);
+  return m?.[1] ?? spec.featureType;
+}
+
+/** Suppress or unsuppress Part Studio features whose name contains any of the given substrings (one batch call). */
+async function cmdSuppress(suppressed: boolean, names: string[]) {
+  const feats = await getFeatures();
+  const hits = feats.features.filter((f: any) => f.featureType !== SEED_FEATURE_TYPE && names.some((n) => f.name.includes(n)));
+  if (!hits.length) fail("No matching features");
+  await api("POST", psPath() + "/features/updates", {
+    btType: "BTUpdateFeaturesCall-1748",
+    updateSuppressionAttributes: true,
+    features: hits.map((f: any) => ({ btType: "BTMFeature-134", featureId: f.featureId, suppressed, parameters: [] })),
+  });
+  console.log(`• ${suppressed ? "suppressed" : "unsuppressed"}: ${hits.map((f: any) => f.name).join(", ")}`);
+}
+
 try {
-  if (command === "run") await cmdRun();
+  if (command === "suppress" || command === "unsuppress") await cmdSuppress(command === "suppress", positional.slice(1));
+  else if (command === "debug") await cmdDebug(positional[1] ?? "");
+  else if (command === "run") await cmdRun();
   else if (command === "seed") await cmdSeed();
   else if (command === "status") await cmdStatus();
   else if (command === "eval") console.log(JSON.stringify(await evalFS(positional[1]), null, 2));
