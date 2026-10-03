@@ -4,7 +4,8 @@ import(path : "onshape/std/common.fs", version : "3083.0");
 import(path : "onshape/std/profilecontrolmode.gen.fs", version : "3083.0");
 
 // Knurl 1.0.0: straight, diagonal (helical) and diamond knurling for Onshape.
-// MIT License. Copyright (c) 2026 Simon Lumikello. See LICENSE in the project repository.
+// MIT License. Copyright (c) 2026 Simon Lumikello.
+// Source, documentation and issues: https://github.com/simon-lumikello/onshape-knurl
 //
 // What it knurls (select faces; edge-connected faces are knurled together as one band):
 //   - cylinders and cones, outside or inside (bores, countersinks)
