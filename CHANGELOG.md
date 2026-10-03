@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 (Phase 3: cones and planar faces)
+- Cones (external and internal): twisted sweep with the sweep's scale factor, so grooves follow the
+  taper; groove size and pitch are given at the mid radius and scale with the radius. The helix angle
+  is exact at the mid radius and varies along the cone (reported in the info message).
+- Planar faces: one sketch + one extrude per groove set, trimmed to a slab over the face so grooves stop
+  at the face boundary (holes included). Count mode = grooves across the face; pitch mode = centred on the face.
+- New parameter "Reference direction (planar faces)": edge, axis or plane; default is the face's longest
+  straight edge. Angle and hand are measured from it about the face normal.
+- Face filter now accepts cylinders, cones and planes; mixed selections work.
+
 ## 0.2.0 (Phases 1+2: cylinders)
 - Knurl on full cylindrical faces, external and internal (bores), any orientation.
 - Profiles: V (depth + included tip angle), round (depth + cutter radius), square (depth + width).

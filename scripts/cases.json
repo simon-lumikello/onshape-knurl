@@ -71,6 +71,47 @@
         "width": "0.6 mm",
         "margin": "3 mm"
       }
+    },
+    {
+      "name": "Knurl cone helical",
+      "params": {
+        "faces": "qGeometry(qCreatedBy($seed + \"cone\", EntityType.FACE), GeometryType.CONE)",
+        "directions": "SINGLE",
+        "angle": "30 deg",
+        "hand": "RIGHT",
+        "spacing": "PITCH",
+        "pitch": "1.5 mm",
+        "profile": "V",
+        "depth": "0.4 mm",
+        "tipAngle": "90 deg"
+      }
+    },
+    {
+      "name": "Knurl plate diamond",
+      "params": {
+        "faces": "qContainsPoint(qGeometry(qCreatedBy($seed + \"plate\", EntityType.FACE), GeometryType.PLANE), vector(120, 0, 5) * millimeter)",
+        "directions": "DOUBLE",
+        "angle": "45 deg",
+        "spacing": "PITCH",
+        "pitch": "2 mm",
+        "profile": "V",
+        "depth": "0.5 mm",
+        "tipAngle": "90 deg"
+      }
+    },
+    {
+      "name": "Knurl cube top straight",
+      "params": {
+        "faces": "qContainsPoint(qGeometry(qCreatedBy($seed + \"cube\", EntityType.FACE), GeometryType.PLANE), vector(55, 0, 30) * millimeter)",
+        "directions": "SINGLE",
+        "angle": "0 deg",
+        "spacing": "COUNT",
+        "count": "10",
+        "referenceDirection": "qContainsPoint(qCreatedBy($seed + \"plate\", EntityType.EDGE), vector(90, 0, 5) * millimeter)",
+        "profile": "SQUARE",
+        "depth": "0.5 mm",
+        "width": "1 mm"
+      }
     }
   ]
 }
