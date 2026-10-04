@@ -6,6 +6,8 @@ rounded boxes, outside or inside.
 
 Free and open source (MIT). Written in FeatureScript, no add-ins or accounts needed.
 
+![Knurled test parts: a rounded box with a continuous diamond band, straight, helical and internal knurls on cylinders, a diamond-knurled shaft with a collar, a diamond-knurled plate and a helically knurled cone](docs/images/showcase.png)
+
 | Knurl type | Example |
 |---|---|
 | Straight | grip ring on a shaft, axial serrations |

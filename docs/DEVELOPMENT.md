@@ -13,6 +13,7 @@ test/cases.json               regression cases: Knurl features with fixed parame
 scripts/dev.ts                CLI for the dev loop (see "Commands")
 scripts/probe-revolved.ts     geometry probe for cylinders and cones
 scripts/probe-band.ts         geometry probe for rounded-rectangle bands
+scripts/render-showcase.ts    renders the test Part Studio to docs/images/showcase.png (README image)
 scripts/lib/config.ts         all tooling configuration (paths, names, retry policy)
 scripts/lib/onshape.ts        REST client: request signing, 409/429 handling
 scripts/lib/featurescript.ts  FeatureScript eval and value conversion
@@ -60,6 +61,7 @@ bun scripts/dev.ts help
 bun scripts/probe-revolved.ts 0,0,0 0,0,1 10 0.25 10 30          # cylinder: crossings, air, rotation
 bun scripts/probe-revolved.ts 60,60,0 0,0,1 8 0.25 10 11 --internal
 bun scripts/probe-band.ts -60,0 15 15 6 0.2 6.75 12.75             # band: flats vs fillets
+bun scripts/render-showcase.ts                                      # README image (1 call)
 ```
 
 `bun run dev` exits 0 when every case regenerates, 2 when a case is in ERROR, and 1 on compile or API
