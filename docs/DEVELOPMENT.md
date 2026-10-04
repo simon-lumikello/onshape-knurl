@@ -131,7 +131,10 @@ After any change to `knurl.fs`, `bun run dev` must report every case as INFO wit
 
 1. Bump the version in the `knurl.fs` header, `package.json` and `CHANGELOG.md`.
 2. `bun run typecheck`, `bun run dev`, compare with the baseline.
-3. Paste or push `knurl.fs` into the public release document's **Knurl** Feature Studio and create an
-   Onshape version named after the release (e.g. `1.0.0`). Users add custom features from versions,
-   so they only see a release once it is versioned.
-4. Tag the commit (`git tag v1.0.0`).
+3. Paste or push `knurl.fs` into the **Knurl** Feature Studio of the public release document
+   ([Knurl – straight, diagonal & diamond knurling](https://cad.onshape.com/documents/37b9b62067bd3a21705ea22f),
+   workspace `4b1f0c82ac30d20fee9a569d`, element `f896b9e814c68de60d7b1871`) and create an Onshape version
+   named after the release (e.g. `1.0.1`). Users add custom features from versions, so they only see a
+   release once it is versioned. The release document holds only the Feature Studio; tests live in the
+   separate test document.
+4. Tag the commit (`git tag v1.0.1`), push the tag, and create a GitHub release with the CHANGELOG entry.

@@ -14,7 +14,9 @@ Free and open source (MIT). Written in FeatureScript, no add-ins or accounts nee
 
 ## Install
 
-1. Open the public document **[Knurl – knurling custom feature for Onshape](#)** *(link added on publication)*.
+1. Open the public document
+   **[Knurl – straight, diagonal & diamond knurling](https://cad.onshape.com/documents/37b9b62067bd3a21705ea22f)**
+   (or search the public documents for "Knurl").
 2. In your own Part Studio, open **Add custom features** from the custom features button at the right
    end of the toolbar, find the **Knurl** document (search for "Knurl"), and add **Knurl** from its
    latest version.
